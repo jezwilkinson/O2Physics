@@ -19,4 +19,7 @@ o2physics_add_dpl_workflow(qa-efficiency
                     PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-
+o2physics_add_dpl_workflow(qa-tpcpid
+                    SOURCES qaTPCPID.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+                    COMPONENT_NAME Analysis)
