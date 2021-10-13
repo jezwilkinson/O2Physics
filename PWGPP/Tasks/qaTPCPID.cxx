@@ -8,14 +8,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \file qaTPCPID.cxx
 /// \author Jeremy Wilkinson <jeremy.wilkinson@cern.ch>, GSI Darmstadt
+/// \brief Task to give QA output for TPC PID response based on external classes (TOF cut, V0s, etc)
+
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "Common/Core/trackUtilities.h"
+#include "Common/Core/PID/PIDResponse.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 
+using namespace o2;
 using namespace o2::framework;
+using namespace o2::framework::expressions;
+using namespace o2::track;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -30,7 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 using namespace o2::dataformats;
 
 
-struct QaTPCPID {
+struct QaTpcPid {
   //Configurables
   Configurable<float> cutTOF{"cutTOF", 3.f, "TOF nsigma cut for TPC-TOF PID"};
   Configurable<int> pBins{"pBins", 400, "Number of momentum bins"};
@@ -49,33 +56,53 @@ struct QaTPCPID {
   static constexpr std::string_view hnsigmaTPCTOF[Np] = {"nsigmaTPCTOF/El", "nsigmaTPCTOF/Mu", "nsigmaTPCTOF/Pi",
                                                    "nsigmaTPCTOF/Ka", "nsigmaTPCTOF/Pr", "nsigmaTPCTOF/De",
                                                    "nsigmaTPCTOF/Tr", "nsigmaTPCTOF/He", "nsigmaTPCTOF/Al"};
+                                                   
+  static constexpr std::string_view hnsigmaTOF[Np] = {"nsigmaTOF/El", "nsigmaTOF/Mu", "nsigmaTOF/Pi",
+                                                   "nsigmaTOF/Ka", "nsigmaTOF/Pr", "nsigmaTOF/De",
+                                                   "nsigmaTOF/Tr", "nsigmaTOF/He", "nsigmaTOF/Al"};
+  static constexpr std::string_view hnsigmaTOFAfter[Np] = {"nsigmaTOFAfter/El", "nsigmaTOFAfter/Mu", "nsigmaTOFAfter/Pi",
+                                                   "nsigmaTOFAfter/Ka", "nsigmaTOFAfter/Pr", "nsigmaTOFAfter/De",
+                                                   "nsigmaTOFAfter/Tr", "nsigmaTOFAfter/He", "nsigmaTOFAfter/Al"};
   static constexpr const char* partName[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
 
   template <uint8_t i>
-  void addParticleHistos()
+  void addTPCQAParticleHistos()
   {
     AxisSpec pAxis{pBins, pMin, pMax, "#it{p} [GeV/#it{c}]"};
     AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, "TPC n_{#sigma}"};
+    AxisSpec tofnSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, "TOF n_{#sigma}"};
     
     hists.add(hnsigmaTPC[i].data(), Form("TPC signal (%s) without TOF cut",partName[i]), kTH2F, {pAxis, nSigmaAxis}); 
-    hists.add(hnsigmaTPCTOF[i].data(), Form("TPC signal (%s) after %.2f#sigma TOF cut",partName[i],cutTOF), kTH2F, {pAxis, nSigmaAxis}); 
+    hists.add(hnsigmaTPCTOF[i].data(), Form("TPC signal (%s) after TOF cut",partName[i],cutTOF), kTH2F, {pAxis, nSigmaAxis}); 
+    hists.add(hnsigmaTOF[i].data(), "TOF signal", kTH2F, {pAxis, tofnSigmaAxis}); 
+    hists.add(hnsigmaTOFAfter[i].data(), "TOF signal after TOF cut", kTH2F, {pAxis, tofnSigmaAxis}); 
     
   }//addParticleHistos
   
 
   void init(InitContext&)
   {
-    for (int i = 0; i < Np; i++) {
-      addParticleHistos<i>;
-    }//for
+  
+    addTPCQAParticleHistos<0>();
+    addTPCQAParticleHistos<1>();
+    addTPCQAParticleHistos<2>();
+    addTPCQAParticleHistos<3>();
+    addTPCQAParticleHistos<4>();
+    addTPCQAParticleHistos<5>();
+    addTPCQAParticleHistos<6>();
+    addTPCQAParticleHistos<7>();
+    addTPCQAParticleHistos<8>();
+  
   }//init
   
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float mom, const float tofNSigma, const float tpcNSigma)
+  void fillTPCQAParticleHistos(const T& t, const float mom, const float tofNSigma, const float tpcNSigma)
   {
     hists.fill(HIST(hnsigmaTPC[i]),mom, tpcNSigma);
-    if (tofNSigma < cutTOF) hists.fill(HIST(hnsigmaTPCTOF[i]),mom, tpcNSigma);
+    if (abs(tofNSigma) < cutTOF) hists.fill(HIST(hnsigmaTPCTOF[i]),mom, tpcNSigma);
     
+    hists.fill(HIST(hnsigmaTOF[i]),mom, tofNSigma);
+    if (abs(tofNSigma) < cutTOF) hists.fill(HIST(hnsigmaTOFAfter[i]),mom, tofNSigma);
   }//fillParticleHistos
   
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra,
@@ -89,24 +116,24 @@ struct QaTPCPID {
   {
     for (auto t : tracks) {
       const float mom = t.tpcInnerParam();
-      fillParticleHistos<0>(t, mom, t.tofNSigmaEl(), t.tpcNSigmaEl());
-      fillParticleHistos<1>(t, mom, t.tofNSigmaMu(), t.tpcNSigmaMu());
-      fillParticleHistos<2>(t, mom, t.tofNSigmaPi(), t.tpcNSigmaPi());
-      fillParticleHistos<3>(t, mom, t.tofNSigmaKa(), t.tpcNSigmaKa());
-      fillParticleHistos<4>(t, mom, t.tofNSigmaPr(), t.tpcNSigmaPr());
-      fillParticleHistos<5>(t, mom, t.tofNSigmaDe(), t.tpcNSigmaDe());
-      fillParticleHistos<6>(t, mom, t.tofNSigmaTr(), t.tpcNSigmaTr());
-      fillParticleHistos<7>(t, mom, t.tofNSigmaHe(), t.tpcNSigmaHe());
-      fillParticleHistos<8>(t, mom, t.tofNSigmaAl(), t.tpcNSigmaAl());
+      fillTPCQAParticleHistos<0>(t, mom, t.tofNSigmaEl(), t.tpcNSigmaEl());
+      fillTPCQAParticleHistos<1>(t, mom, t.tofNSigmaMu(), t.tpcNSigmaMu());
+      fillTPCQAParticleHistos<2>(t, mom, t.tofNSigmaPi(), t.tpcNSigmaPi());
+      fillTPCQAParticleHistos<3>(t, mom, t.tofNSigmaKa(), t.tpcNSigmaKa());
+      fillTPCQAParticleHistos<4>(t, mom, t.tofNSigmaPr(), t.tpcNSigmaPr());
+      fillTPCQAParticleHistos<5>(t, mom, t.tofNSigmaDe(), t.tpcNSigmaDe());
+      fillTPCQAParticleHistos<6>(t, mom, t.tofNSigmaTr(), t.tpcNSigmaTr());
+      fillTPCQAParticleHistos<7>(t, mom, t.tofNSigmaHe(), t.tpcNSigmaHe());
+      fillTPCQAParticleHistos<8>(t, mom, t.tofNSigmaAl(), t.tpcNSigmaAl());
       
     }//for
   }//process
-}//struct QaTPCPID
+};//struct QaTPCPID
 
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  Workflowpec w;
-  w.push_back(adaptAnalysisTask<QaTPCPID>(cfgc));
+  WorkflowSpec w;
+  w.push_back(adaptAnalysisTask<QaTpcPid>(cfgc));
   return w;
 }

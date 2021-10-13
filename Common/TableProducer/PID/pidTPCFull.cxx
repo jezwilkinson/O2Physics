@@ -179,6 +179,13 @@ struct tpcPidFullQa {
   static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
                                                    "nsigma/Ka", "nsigma/Pr", "nsigma/De",
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
+                                                   
+  static constexpr std::string_view hnsigmaVsEta[Np] = {"nsigmaVsEta/El", "nsigmaVsEta/Mu", "nsigmaVsEta/Pi",
+                                                   "nsigmaVsEta/Ka", "nsigmaVsEta/Pr", "nsigmaVsEta/De",
+                                                   "nsigmaVsEta/Tr", "nsigmaVsEta/He", "nsigmaVsEta/Al"};
+  static constexpr std::string_view hnsigmaVsPhi[Np] = {"nsigmaVsPhi/El", "nsigmaVsPhi/Mu", "nsigmaVsPhi/Pi",
+                                                   "nsigmaVsPhi/Ka", "nsigmaVsPhi/Pr", "nsigmaVsPhi/De",
+                                                   "nsigmaVsPhi/Tr", "nsigmaVsPhi/He", "nsigmaVsPhi/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> logAxis{"logAxis", 0, "Flag to use a log momentum axis"};
@@ -199,6 +206,10 @@ struct tpcPidFullQa {
     if (logAxis) {
       pAxis.makeLogaritmic();
     }
+    
+    // axes for eta, phi
+    AxisSpec etaAxis{100, -1., 1., "#eta"};
+    AxisSpec phiAxis{100, 0., 2*o2::constants::math::PI};
 
     // Exp signal
     const AxisSpec expAxis{1000, 0, 1000, Form("d#it{E}/d#it{x}_(%s) A.U.", pT[i])};
@@ -211,6 +222,11 @@ struct tpcPidFullQa {
     // NSigma
     const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TPC}(%s)", pT[i])};
     histos.add(hnsigma[i].data(), "", kTH2F, {pAxis, nSigmaAxis});
+    //Nsigma vs Eta
+    histos.add(hnsigmaVsEta[i].data(), "", kTH2F, {etaAxis, nSigmaAxis});
+    
+    //Nsigma vs phi
+    histos.add(hnsigmaVsPhi[i].data(), "", kTH2F, {phiAxis, nSigmaAxis});
   }
 
   void init(o2::framework::InitContext&)
@@ -244,6 +260,8 @@ struct tpcPidFullQa {
     histos.fill(HIST(hexpected[i]), mom, t.tpcSignal() - exp_diff);
     histos.fill(HIST(hexpected_diff[i]), mom, exp_diff);
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
+    histos.fill(HIST(hnsigmaVsEta[i]),t.eta(),nsigma);
+    histos.fill(HIST(hnsigmaVsPhi[i]),t.phi(),nsigma);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra,
