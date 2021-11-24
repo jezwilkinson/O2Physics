@@ -155,6 +155,7 @@ struct QaTpcV0 {
   Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for TPC nSigma"};
   Configurable<float> minNSigma{"minNSigma", -10.f, "Lower limit for TPC nSigma"};
   Configurable<float> maxNSigma{"maxNSigma", 10.f, "Upper limit for TPC nSigma"};
+  Configurable<int> produceSkimmedTree{"produceSkimmedTree", 0, "Option to produce skimmed tree for fitting (run also with '--aod-writer-keep dangling' to save to file)"};
 
   //Definition of V0 preselection cuts for K0S, Lambda, Anti-lambda
   //K0S
@@ -220,6 +221,13 @@ struct QaTpcV0 {
         // Treat as K0 (both tracks pions)
         fillV0Histos<kPi>(posTrack, posTrack.tpcInnerParam(), posTrack.tpcExpSignalDiffPi(), posTrack.tpcNSigmaPi());
         fillV0Histos<kPi>(negTrack, negTrack.tpcInnerParam(), negTrack.tpcExpSignalDiffPi(), negTrack.tpcNSigmaPi());
+   //     if (produceSkimmedTree) {
+   //         // 
+   //         fillSkimmedTable(kPi, bg, ) ; // posTrack
+   //         fillSkimmedTable(kPi, bg, ) ; // negTrack
+//
+//
+   //     }
       }
 
       // Check for Lambda
