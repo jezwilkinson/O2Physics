@@ -198,6 +198,22 @@ struct QaTpcV0 {
     histos.fill(HIST(hnsigmaV0VsEta[i]),t.eta(),nsigma);
   }
 
+
+  template <uint8_t id, typename T>
+  void fillSkimmedTable(const T& track)
+  {
+
+    const double ncl = track.tpcNClsFound();
+    const double p = track.tpcInnerParam();
+    const double mass = o2::track::pid_constants::sMasses[id];
+    const double bg = p/mass;
+    const double dEdx = o2::pid::tpc::Response::GetExpectedSignal(track, id);
+    const double tgl = track.tgl();
+    
+
+
+  }
+
   void init(o2::framework::InitContext&)
   {
     addV0Histos<0>();
@@ -221,13 +237,11 @@ struct QaTpcV0 {
         // Treat as K0 (both tracks pions)
         fillV0Histos<kPi>(posTrack, posTrack.tpcInnerParam(), posTrack.tpcExpSignalDiffPi(), posTrack.tpcNSigmaPi());
         fillV0Histos<kPi>(negTrack, negTrack.tpcInnerParam(), negTrack.tpcExpSignalDiffPi(), negTrack.tpcNSigmaPi());
-   //     if (produceSkimmedTree) {
-   //         // 
-   //         fillSkimmedTable(kPi, bg, ) ; // posTrack
-   //         fillSkimmedTable(kPi, bg, ) ; // negTrack
-//
-//
-   //     }
+        if (produceSkimmedTree) { 
+            fillSkimmedTable<o2::track::PID::Pion>(posTrack);
+            fillSkimmedTable<o2::track::PID::Pion>(negTrack); 
+
+        }
       }
 
       // Check for Lambda
