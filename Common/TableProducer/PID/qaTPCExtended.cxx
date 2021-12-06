@@ -199,17 +199,19 @@ struct QaTpcV0 {
   }
 
 
-  template <uint8_t id, typename T>
-  void fillSkimmedTable(const T& track)
+  template <uint8_t id, typename T, typename C>
+  void fillSkimmedTable(const T& track, const C& collision)
   {
 
     const double ncl = track.tpcNClsFound();
     const double p = track.tpcInnerParam();
     const double mass = o2::track::pid_constants::sMasses[id];
     const double bg = p/mass;
-    const double dEdx = o2::pid::tpc::Response::GetExpectedSignal(track, id);
+//    const double dEdx = track.tpcExpSigma
     const double tgl = track.tgl();
-    
+    const int multTPC = collision.multTPC();
+    const double eta = track.eta();
+
 
 
   }
@@ -238,8 +240,8 @@ struct QaTpcV0 {
         fillV0Histos<kPi>(posTrack, posTrack.tpcInnerParam(), posTrack.tpcExpSignalDiffPi(), posTrack.tpcNSigmaPi());
         fillV0Histos<kPi>(negTrack, negTrack.tpcInnerParam(), negTrack.tpcExpSignalDiffPi(), negTrack.tpcNSigmaPi());
         if (produceSkimmedTree) { 
-            fillSkimmedTable<o2::track::PID::Pion>(posTrack);
-            fillSkimmedTable<o2::track::PID::Pion>(negTrack); 
+            fillSkimmedTable<o2::track::PID::Pion>(posTrack, collision);
+            fillSkimmedTable<o2::track::PID::Pion>(negTrack, collision); 
 
         }
       }
