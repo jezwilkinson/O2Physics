@@ -18,6 +18,7 @@
 #include "Common/Core/PID/PIDResponse.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 #include "Common/DataModel/StrangenessTables.h"
+#include "Common/DataModel/Multiplicity.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -26,12 +27,10 @@ using namespace o2::track;
 using TPCV0Tracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCFullEl, aod::pidTPCFullPi,
                               aod::pidTPCFullKa, aod::pidTPCFullPr, aod::TrackSelection>;
 
-
-
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{//runtime customisation goes here
-    {"useV0", VariantType::Int, 0, {"Use V0 information for QA"}}};
+                                       {"useV0", VariantType::Int, 0, {"Use V0 information for QA"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -39,35 +38,32 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 using namespace o2::dataformats;
 
-namespace o2::pid::tpc {
-  DECLARE_SOA_COLUMN(InvDeDx, invdEdx, float);
-  DECLARE_SOA_COLUMN(Mass, mass, float);
-  DECLARE_SOA_COLUMN(BetaGamma, bg, float);
-  DECLARE_SOA_COLUMN(RelResoTPC, relResoTPC, float);
-  DECLARE_SOA_COLUMN(NormMultTPC, normMultTPC, float);
-  DECLARE_SOA_COLUMN(NormNClustersTPC, normNClustersTPC, float);
-  DECLARE_SOA_COLUMN(PidIndex, pidIndexTPC, uint8_t);
+namespace o2::aod
+{
 
-  
-
-  DECLARE_SOA_TABLE(SkimmedV0TPCTree, "AOD", "TPCV0SKIMTREE",
-                o2::aod::track::TPCSignal,
-                tpc::InvDeDx,
-                o2::aod::track::Tgl,
-                o2::aod::track::Signed1Pt,
-                o2::aod::track::Eta,
-                tpc::Mass,
-                tpc::BetaGamma,
-                tpc::RelResoTPC,
-                tpc::NormMultTPC,
-                tpc::NormNClustersTPC,
-                tpc::PidIndex
-                );
-
-
-
-}
-
+namespace tpc
+{
+DECLARE_SOA_COLUMN(InvDeDx, invdEdx, float);
+DECLARE_SOA_COLUMN(Mass, mass, float);
+DECLARE_SOA_COLUMN(BetaGamma, bg, float);
+DECLARE_SOA_COLUMN(RelResoTPC, relResoTPC, float);
+DECLARE_SOA_COLUMN(NormMultTPC, normMultTPC, float);
+DECLARE_SOA_COLUMN(NormNClustersTPC, normNClustersTPC, float);
+DECLARE_SOA_COLUMN(PidIndex, pidIndexTPC, uint8_t);
+} //namespace tpc
+DECLARE_SOA_TABLE(SkimmedV0TPCTree, "AOD", "TPCV0SKIMTREE",
+                  o2::aod::track::TPCSignal,
+                  tpc::InvDeDx,
+                  o2::aod::track::Tgl,
+                  o2::aod::track::Signed1Pt,
+                  o2::aod::track::Eta,
+                  tpc::Mass,
+                  tpc::BetaGamma,
+                  tpc::RelResoTPC,
+                  tpc::NormMultTPC,
+                  tpc::NormNClustersTPC,
+                  tpc::PidIndex);
+} // namespace o2::aod
 
 struct QaTpcTof {
   //Configurables
@@ -166,6 +162,7 @@ struct QaTpcTof {
 };    //struct QaTPCPID
 
 struct QaTpcV0 {
+  Produces<o2::aod::SkimmedV0TPCTree> rowTPCV0Tree;
   static constexpr int NpV0 = 4;
   enum EV0DaughID { kEle = 0,
                     kPi = 1,
@@ -179,7 +176,7 @@ struct QaTpcV0 {
   static constexpr std::string_view hnsigmaV0[NpV0] = {"nsigmaTPCV0/El", "nsigmaTPCV0/Pi",
                                                        "nsigmaTPCV0/Ka", "nsigmaTPCV0/Pr"};
   static constexpr std::string_view hnsigmaV0VsEta[NpV0] = {"nsigmaTPCV0VsEta/El", "nsigmaTPCV0VsEta/Pi",
-                                                       "nsigmaTPCV0VsEta/Ka", "nsigmaTPCV0VsEta/Pr"};
+                                                            "nsigmaTPCV0VsEta/Ka", "nsigmaTPCV0VsEta/Pr"};
   HistogramRegistry histos{"TPCPIDQA_V0", {}, OutputObjHandlingPolicy::QAObject};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> minP{"minP", 0.01, "Minimum momentum in range"};
@@ -188,7 +185,6 @@ struct QaTpcV0 {
   Configurable<float> minNSigma{"minNSigma", -10.f, "Lower limit for TPC nSigma"};
   Configurable<float> maxNSigma{"maxNSigma", 10.f, "Upper limit for TPC nSigma"};
   Configurable<int> produceSkimmedTree{"produceSkimmedTree", 0, "Option to produce skimmed tree for fitting (run also with '--aod-writer-keep dangling' to save to file)"};
-  Produces<o2::pid::tpc::SkimmedV0TPCTree> rowTPCV0Tree;
   //Definition of V0 preselection cuts for K0S, Lambda, Anti-lambda
   //K0S
   static constexpr const float cutQTK0[2] = {0.1075f, 0.215f};
@@ -204,7 +200,6 @@ struct QaTpcV0 {
   {
     AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
     pAxis.makeLogaritmic();
-    
 
     // corrected dE/dx for clean V0
     AxisSpec expAxis{1000, 0, 1000, Form("d#it{E}/d#it{x}_(%s from V^{0}) A.U.", partName[i])};
@@ -227,9 +222,8 @@ struct QaTpcV0 {
     histos.fill(HIST(hdEdxV0[i]), mom, t.tpcSignal() - exp_diff);
     histos.fill(HIST(hdEdxDiffV0[i]), mom, exp_diff);
     histos.fill(HIST(hnsigmaV0[i]), t.p(), nsigma);
-    histos.fill(HIST(hnsigmaV0VsEta[i]),t.eta(),nsigma);
+    histos.fill(HIST(hnsigmaV0VsEta[i]), t.eta(), nsigma);
   }
-
 
   template <uint8_t id, typename T, typename C>
   void fillSkimmedTable(const T& track, const C& collision)
@@ -238,9 +232,9 @@ struct QaTpcV0 {
     const double ncl = track.tpcNClsFound();
     const double p = track.tpcInnerParam();
     const double mass = o2::track::pid_constants::sMasses[id];
-    const double bg = p/mass;
+    const double bg = p / mass;
     double dEdxExp;
-    switch(id) {
+    switch (id) {
       case o2::track::PID::Pion:
         dEdxExp = track.tpcSignal() - track.tpcExpSignalDiffPi();
         break;
@@ -251,23 +245,21 @@ struct QaTpcV0 {
         dEdxExp = -999.;
         break;
     }
-    
 
     //const double tgl = track.tgl();
     const int multTPC = collision.multTPC();
-    
+
     rowTPCV0Tree(track.tpcSignal(),
-                 1./dEdxExp,
+                 1. / dEdxExp,
                  track.tgl(),
                  track.signed1Pt(),
                  track.eta(),
                  mass,
                  bg,
                  0.,
-                 multTPC/11000.,
-                 std::sqrt(63./ncl),
-                 id );
-
+                 multTPC / 11000.,
+                 std::sqrt(63. / ncl),
+                 id);
   }
 
   void init(o2::framework::InitContext&)
@@ -279,8 +271,9 @@ struct QaTpcV0 {
 
   } //init
 
-  void process(soa::Join<aod::Collision, aod::Mult> const& collision, aod::V0Datas const& v0s, TPCV0Tracks const& tracks)
+  void process(soa::Join<aod::Collisions, aod::Mults>::iterator const& collision, aod::V0Datas const& v0s, TPCV0Tracks const& tracks)
   {
+    rowTPCV0Tree.reserve(v0s.size());
     for (auto v0 : v0s) { //for loop on built v0 candidates
       // initialise dynamic variables
       float alpha = v0.alpha();
@@ -293,10 +286,9 @@ struct QaTpcV0 {
         // Treat as K0 (both tracks pions)
         fillV0Histos<kPi>(posTrack, posTrack.tpcInnerParam(), posTrack.tpcExpSignalDiffPi(), posTrack.tpcNSigmaPi());
         fillV0Histos<kPi>(negTrack, negTrack.tpcInnerParam(), negTrack.tpcExpSignalDiffPi(), negTrack.tpcNSigmaPi());
-        if (produceSkimmedTree) { 
-            fillSkimmedTable<o2::track::PID::Pion>(posTrack, collision);
-            fillSkimmedTable<o2::track::PID::Pion>(negTrack, collision); 
-
+        if (produceSkimmedTree) {
+          fillSkimmedTable<o2::track::PID::Pion>(posTrack, collision);
+          fillSkimmedTable<o2::track::PID::Pion>(negTrack, collision);
         }
       }
 
@@ -306,10 +298,9 @@ struct QaTpcV0 {
         //Treat as Lambda (pos proton, neg pion)
         fillV0Histos<kPr>(posTrack, posTrack.tpcInnerParam(), posTrack.tpcExpSignalDiffPr(), posTrack.tpcNSigmaPr());
         fillV0Histos<kPi>(negTrack, negTrack.tpcInnerParam(), negTrack.tpcExpSignalDiffPi(), negTrack.tpcNSigmaPi());
-        if (produceSkimmedTree) { 
+        if (produceSkimmedTree) {
           fillSkimmedTable<o2::track::PID::Proton>(posTrack, collision);
-          fillSkimmedTable<o2::track::PID::Pion>(negTrack, collision); 
-
+          fillSkimmedTable<o2::track::PID::Pion>(negTrack, collision);
         }
       }
 
@@ -319,10 +310,9 @@ struct QaTpcV0 {
         //Treat as antilambda (pos pion, neg proton)
         fillV0Histos<kPi>(posTrack, posTrack.tpcInnerParam(), posTrack.tpcExpSignalDiffPi(), posTrack.tpcNSigmaPi());
         fillV0Histos<kPr>(negTrack, negTrack.tpcInnerParam(), negTrack.tpcExpSignalDiffPr(), negTrack.tpcNSigmaPr());
-      if (produceSkimmedTree) { 
+        if (produceSkimmedTree) {
           fillSkimmedTable<o2::track::PID::Pion>(posTrack, collision);
-          fillSkimmedTable<o2::track::PID::Proton>(negTrack, collision); 
-
+          fillSkimmedTable<o2::track::PID::Proton>(negTrack, collision);
         }
       }
 
