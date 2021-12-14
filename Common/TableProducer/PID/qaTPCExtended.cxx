@@ -54,6 +54,7 @@ DECLARE_SOA_COLUMN(PidIndex, pidIndexTPC, uint8_t);
 DECLARE_SOA_TABLE(SkimmedV0TPCTree, "AOD", "TPCV0SKIMTREE",
                   o2::aod::track::TPCSignal,
                   tpc::InvDeDx,
+                  o2::aod::track::TPCInnerParam,
                   o2::aod::track::Tgl,
                   o2::aod::track::Signed1Pt,
                   o2::aod::track::Eta,
@@ -251,6 +252,7 @@ struct QaTpcV0 {
 
     rowTPCV0Tree(track.tpcSignal(),
                  1. / dEdxExp,
+                 track.tpcInnerParam(),
                  track.tgl(),
                  track.signed1Pt(),
                  track.eta(),
@@ -273,7 +275,7 @@ struct QaTpcV0 {
 
   void process(soa::Join<aod::Collisions, aod::Mults>::iterator const& collision, aod::V0Datas const& v0s, TPCV0Tracks const& tracks)
   {
-    rowTPCV0Tree.reserve(v0s.size());
+    rowTPCV0Tree.reserve(tracks.size());
     for (auto v0 : v0s) { //for loop on built v0 candidates
       // initialise dynamic variables
       float alpha = v0.alpha();
