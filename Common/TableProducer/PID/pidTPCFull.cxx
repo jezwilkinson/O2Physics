@@ -64,7 +64,7 @@ struct tpcPidFull {
   Produces<o2::aod::pidTPCFullHe> tablePIDHe;
   Produces<o2::aod::pidTPCFullAl> tablePIDAl;
   // TPC PID Response
-  o2::pid::tpc::Response* response = nullptr;
+  o2::pid::tpc::Response response;
   // Input parameters
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
@@ -114,7 +114,7 @@ struct tpcPidFull {
       LOGP(info, "Loading TPC response from file {}", fname);
       try {
         std::unique_ptr<TFile> f(TFile::Open(fname, "READ"));
-        f->GetObject("Response", response);
+      //  f->GetObject("Response", response);
       } catch (...) {
         LOGP(info, "Loading the TPC PID Response from file {} failed!", fname);
       };
@@ -126,8 +126,21 @@ struct tpcPidFull {
       ccdb->setCaching(true);
       ccdb->setLocalObjectValidityChecking();
       ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-      response = ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time);
-      LOGP(info, "Loading TPC response from CCDB, using path: {} for timestamp {}", path, time);
+    //  response = o2::pid::tpc::Response();
+
+      
+     // auto ccdbresponse = ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time);
+     response.SetBetheBlochParams(ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time)->GetBetheBlochParams());
+     response.SetResolutionParams(ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time)->GetResolutionParams());
+     response.SetMIP(ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time)->GetMIP());
+     response.SetChargeFactor(ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time)->GetChargeFactor());
+     response.SetMultiplicityNormalization(ccdb->getForTimeStamp<o2::pid::tpc::Response>(path, time)->GetMultiplicityNormalization());
+    //  response.SetResolutionParametrization(ccdbresponse->GetResolutionParametrization());
+
+
+      response.PrintAll();
+   //   delete ccdbresponse;
+      LOGP(info, "Loading TPC response from CCDB, using path: {} for tiamestamp {}", path, time);
     }
   }
 
@@ -142,8 +155,8 @@ struct tpcPidFull {
         table.reserve(tracks.size());
         for (auto const& trk : tracks) { // Loop on Tracks
           auto collision = collisions.iteratorAt(trk.collisionId());
-          table(response->GetExpectedSigma(collision, trk, pid),
-                response->GetNumberOfSigma(collision, trk, pid));
+          table(response.GetExpectedSigma(collision, trk, pid),
+                response.GetNumberOfSigma(collision, trk, pid));
         }
       }
     };
