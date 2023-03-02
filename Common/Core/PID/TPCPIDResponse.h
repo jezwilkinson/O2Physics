@@ -47,6 +47,8 @@ class Response
   void SetMultiplicityNormalization(const float multNormalization) { mMultNormalization = multNormalization; }
   void SetNClNormalization(const float nclnorm) { nClNorm = nclnorm; }
   void SetUseDefaultResolutionParam(const bool useDefault) { mUseDefaultResolutionParam = useDefault; }
+  void SetRelResoMin(const float relResoMin) { mRelResoMin = relResoMin; }
+  void SetRelResoMax(const float relResoMax) { mRelResoMax = relResoMax; }
   void SetParameters(const Response* response)
   {
     mBetheBlochParams = response->GetBetheBlochParams();
@@ -57,6 +59,8 @@ class Response
     mChargeFactor = response->GetChargeFactor();
     mMultNormalization = response->GetMultiplicityNormalization();
     mUseDefaultResolutionParam = response->GetUseDefaultResolutionParam();
+    mRelResoMin = response->GetRelResoMin();
+    mRelResoMax = response->GetRelResoMax();
   }
 
   const std::array<float, 5> GetBetheBlochParams() const { return mBetheBlochParams; }
@@ -67,6 +71,8 @@ class Response
   const float GetChargeFactor() const { return mChargeFactor; }
   const float GetMultiplicityNormalization() const { return mMultNormalization; }
   const bool GetUseDefaultResolutionParam() const { return mUseDefaultResolutionParam; }
+  const float GetRelResoMin() const { return mRelResoMin; }
+  const float GetRelResoMax() const { return mRelResoMax; }
 
   /// Gets the expected signal of the track
   template <typename TrackType>
@@ -94,8 +100,10 @@ class Response
   float mMultNormalization = 11000.;
   bool mUseDefaultResolutionParam = true;
   float nClNorm = 152.f;
+  float mRelResoMin = 0.05f;
+  float mRelResoMax = 0.14f;
 
-  ClassDefNV(Response, 3);
+  ClassDefNV(Response, 4);
 
 }; // class Response
 
@@ -135,6 +143,16 @@ inline float Response::GetExpectedSigma(const CollisionType& collision, const Tr
     const float reso = sqrt(pow(mResolutionParams[0], 2) * values[0] + pow(mResolutionParams[1], 2) * (values[2] * mResolutionParams[5]) * pow(values[0] / sqrt(1 + pow(values[1], 2)), mResolutionParams[2]) + values[2] * pow(values[3], 2) + pow(mResolutionParams[4] * values[4], 2) + pow(values[5] * mResolutionParams[6], 2) + pow(values[5] * (values[0] / sqrt(1 + pow(values[1], 2))) * mResolutionParams[7], 2)) * dEdx * mMIP;
     reso >= 0.f ? resolution = reso : resolution = -999.f;
   }
+
+  if (resolution >= 0.f) { // Clamp expected resolution to set limits
+    const float expSignal = GetExpectedSignal(track, id);
+    if ((resolution / expSignal) < mRelResoMin) {
+      resolution = mRelResoMin * expSignal;
+    } else if ((resolution / expSignal) > mRelResoMax) {
+      resolution = mRelResoMax * expSignal;
+    }
+  }
+
   return resolution;
 }
 

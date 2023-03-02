@@ -298,12 +298,23 @@ struct tpcPid {
           if (network.getNumOutputNodes() == 1) {
             aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() - network_prediction[count_tracks + tracks_size * pid] * response.GetExpectedSignal(trk, pid)) / response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid), table);
           } else if (network.getNumOutputNodes() == 2) {
-            aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[2 * (count_tracks + tracks_size * pid)]) / (network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)]), table);
+            float expRelSigma = network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)];
+            if (expRelSigma > response.GetRelResoMax()) expRelSigma = response.GetRelResoMax();
+            if (expRelSigma < response.GetRelResoMin()) expRelSigma = response.GetRelResoMin();
+            aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[2 * (count_tracks + tracks_size * pid)]) / expRelSigma, table);
           } else if (network.getNumOutputNodes() == 3) {
+            float expRelSigmaUp = network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)];
+            if (expRelSigmaUp > response.GetRelResoMax()) expRelSigmaUp = response.GetRelResoMax();
+            if (expRelSigmaUp < response.GetRelResoMin()) expRelSigmaUp = response.GetRelResoMin();
+            
+            float expRelSigmaDown = network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2];
+            if (expRelSigmaDown > response.GetRelResoMax()) expRelSigmaDown = response.GetRelResoMax();
+            if (expRelSigmaDown < response.GetRelResoMin()) expRelSigmaDown = response.GetRelResoMin();
+            
             if (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) >= network_prediction[3 * (count_tracks + tracks_size * pid)]) {
-              aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / (network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)]), table);
+              aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / expRelSigmaUp, table);
             } else {
-              aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / (network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2]), table);
+              aod::pidutils::packInTable<aod::pidtpc_tiny::binning>((trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / expRelSigmaDown, table);
             }
           } else {
             LOGF(fatal, "Network output-dimensions incompatible!");
