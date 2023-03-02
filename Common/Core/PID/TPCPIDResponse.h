@@ -217,6 +217,8 @@ inline void Response::PrintAll() const
   LOGP(info, "mMIP = {}", mMIP);
   LOGP(info, "mChargeFactor = {}", mChargeFactor);
   LOGP(info, "mMultNormalization = {}", mMultNormalization);
+  LOGP(info, "mRelResoMin = {}", mRelResoMin);
+  LOGP(info, "mRelResoMax = {}", mRelResoMax);
   LOGP(info, "nClNorm = {}", nClNorm);
 }
 
