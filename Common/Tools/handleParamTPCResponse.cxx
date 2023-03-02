@@ -42,6 +42,8 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "paramChargeFactor", bpo::value<float>()->default_value(2.299999952316284f), "Charge factor value")(
     "paramMultNormalization", bpo::value<float>()->default_value(11000.), "Multiplicity Normalization")(
     "paramnClNormalization", bpo::value<float>()->default_value(152.), "Maximum nClusters for normalisation (159 for run 2, 152 for run 3)")(
+    "paramRelResoMin", bpo::value<float>()->default_value(0.04), "Minimum relative resolution for NN application")(
+    "paramRelResoMax", bpo::value<float>()->default_value(0.14), "Maximum relative resolution for NN application")(
     "useDefaultParam", bpo::value<bool>()->default_value(true), "Use default sigma parametrisation")(
     "mode", bpo::value<string>()->default_value(""), "Running mode ('read' from file, 'write' to file, 'pull' from CCDB, 'push' to CCDB)")(
     "help,h", "Produce help message.");
@@ -95,6 +97,8 @@ int main(int argc, char* argv[])
   const float chargefacval = arguments["paramChargeFactor"].as<float>();
   const float multNormval = arguments["paramMultNormalization"].as<float>();
   const float nClNormval = arguments["paramnClNormalization"].as<float>();
+  const float minRelReso = arguments["paramRelResoMin"].as<float>();
+  const float maxRelReso = arguments["paramRelResoMax"].as<float>();
   const bool useDefaultParam = arguments["useDefaultParam"].as<bool>();
   const std::string optMode = arguments["mode"].as<std::string>();
   if (optMode.empty()) {
@@ -175,6 +179,8 @@ int main(int argc, char* argv[])
       tpc->SetChargeFactor(chargefacval);
       tpc->SetMultiplicityNormalization(multNormval);
       tpc->SetNClNormalization(nClNormval);
+      tpc->SetRelResoMin(minRelReso);
+      tpc->SetRelResoMax(maxRelReso);
       tpc->SetUseDefaultResolutionParam(useDefaultParam);
       tpc->PrintAll();
     }

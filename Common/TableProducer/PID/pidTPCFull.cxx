@@ -298,15 +298,26 @@ struct tpcPidFull {
             table(response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid),
                   (trk.tpcSignal() - network_prediction[count_tracks + tracks_size * pid] * response.GetExpectedSignal(trk, pid)) / response.GetExpectedSigma(collisions.iteratorAt(trk.collisionId()), trk, pid));
           } else if (network.getNumOutputNodes() == 2) {
-            table((network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)]) * response.GetExpectedSignal(trk, pid),
-                  (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[2 * (count_tracks + tracks_size * pid)]) / (network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)]));
+            float expRelSigma = network_prediction[2 * (count_tracks + tracks_size * pid) + 1] - network_prediction[2 * (count_tracks + tracks_size * pid)];
+            if (expRelSigma > response.GetRelResoMax()) expRelSigma = response.GetRelResoMax();
+            if (expRelSigma < response.GetRelResoMin()) expRelSigma = response.GetRelResoMin();
+            table(expRelSigma * response.GetExpectedSignal(trk, pid),
+                  (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[2 * (count_tracks + tracks_size * pid)]) / expRelSigma);
           } else if (network.getNumOutputNodes() == 3) {
+            float expRelSigmaUp = network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)];
+            if (expRelSigmaUp > response.GetRelResoMax()) expRelSigmaUp = response.GetRelResoMax();
+            if (expRelSigmaUp < response.GetRelResoMin()) expRelSigmaUp = response.GetRelResoMin();
+            
+            float expRelSigmaDown = network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2];
+            if (expRelSigmaDown > response.GetRelResoMax()) expRelSigmaDown = response.GetRelResoMax();
+            if (expRelSigmaDown < response.GetRelResoMin()) expRelSigmaDown = response.GetRelResoMin();
+            
             if (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) >= network_prediction[3 * (count_tracks + tracks_size * pid)]) {
-              table((network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)]) * response.GetExpectedSignal(trk, pid),
-                    (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / (network_prediction[3 * (count_tracks + tracks_size * pid) + 1] - network_prediction[3 * (count_tracks + tracks_size * pid)]));
+              table(expRelSigmaUp * response.GetExpectedSignal(trk, pid),
+                    (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / expRelSigmaUp);
             } else {
-              table((network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2]) * response.GetExpectedSignal(trk, pid),
-                    (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / (network_prediction[3 * (count_tracks + tracks_size * pid)] - network_prediction[3 * (count_tracks + tracks_size * pid) + 2]));
+              table(expRelSigmaDown * response.GetExpectedSignal(trk, pid),
+                    (trk.tpcSignal() / response.GetExpectedSignal(trk, pid) - network_prediction[3 * (count_tracks + tracks_size * pid)]) / expRelSigmaDown);
             }
           } else {
             LOGF(fatal, "Network output-dimensions incompatible!");
