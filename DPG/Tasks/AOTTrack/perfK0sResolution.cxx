@@ -55,6 +55,8 @@ struct perfK0sResolution {
   Configurable<float> v0setting_dcav0dau{"v0setting_dcav0dau", 1., "DCA V0 Daughters"};
   Configurable<float> v0setting_dcapostopv{"v0setting_dcapostopv", 0.1, "DCA Pos To PV"};
   Configurable<float> v0setting_dcanegtopv{"v0setting_dcanegtopv", 0.1, "DCA Neg To PV"};
+  Configurable<float> v0setting_openingangle{"v0setting_openingangle", 3.142f, "V0 opening angle"};
+  Configurable<float> v0setting_ptmin{"v0setting_ptmin",0., "Minimum V0 pT"};
   Configurable<float> v0setting_radius{"v0setting_radius", 0.9, "V0 Radius"};
   Configurable<float> v0lifetime{"v0lifetime", 3., "n ctau"};
   Configurable<float> rapidity{"rapidity", 0.5, "rapidity"};
@@ -75,7 +77,9 @@ struct perfK0sResolution {
       return kFALSE;
     if (v0.distovertotmom(collision.posX(), collision.posY(), collision.posZ()) * RecoDecay::getMassPDG(kK0Short) > 2.684 * v0lifetime)
       return kFALSE;
-
+    if (v0.pt() < v0setting_ptmin) 
+      return kFALSE;
+    
     // Apply selections on V0 daughters
     if (!ntrack.hasTPC() || !ptrack.hasTPC())
       return kFALSE;
@@ -85,6 +89,13 @@ struct perfK0sResolution {
       return kFALSE;
     if ((requireTRDpos > 0 && !ptrack.hasTRD()) || (requireTRDpos < 0 && ptrack.hasTRD()))
       return kFALSE;
+    // Check opening angle of V0 daughters
+    float openAnglePhi = std::fabs(ntrack.phi() - ptrack.phi());
+    if (openAnglePhi > TMath::Pi())
+      openAnglePhi = TMath::TwoPi() - openAnglePhi;
+    if ( openAnglePhi > v0setting_openingangle)
+      return kFALSE;
+
     return kTRUE;
   }
 

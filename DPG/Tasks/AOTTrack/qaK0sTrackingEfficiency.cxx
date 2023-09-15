@@ -41,7 +41,7 @@ struct qaK0sTrackingEfficiency {
     const AxisSpec pTAxis{200, 0.f, 10.f, "#it{p}_{T} (GeV/#it{c})"};
     const AxisSpec mAxis{200, 0.4f, 0.6f, "#it{m} (GeV/#it{c}^{2})"};
     const AxisSpec etaAxis{200, -1.f, 1.0f, "#it{#eta}"};
-    const AxisSpec phiAxis{200, -1.f, 1.0f, "#it{#phi}"};
+    const AxisSpec phiAxis{54, 0.f, 6.2831853f, "#it{#phi}"};
     const AxisSpec nsigmaAxis{200, -1.f, 1.0f, "#it{#phi}"};
     const AxisSpec statusAxis{2, -0.5f, 1.5f, ""};
     const AxisSpec hitMapAxis{128, -0.5f, 127.5f, ""};
@@ -50,7 +50,7 @@ struct qaK0sTrackingEfficiency {
     registry.get<TH1>(HIST("h_EventCounter"))->GetXaxis()->SetBinLabel(1, "Total");
     registry.get<TH1>(HIST("h_EventCounter"))->GetXaxis()->SetBinLabel(2, "Selected");
 
-    registry.add("h5_RpTmassITSHitMap", "h5_RpTmassITSHitMap", {HistType::kTHnSparseD, {RAxis, pTAxis, mAxis, hitMapAxis, hitMapAxis}});
+    registry.add("h6_RpTmassITSHitMapPhi", "h6_RpTmassITSHitMapPhi", {HistType::kTHnSparseD, {RAxis, pTAxis, mAxis, hitMapAxis, hitMapAxis,phiAxis}});
 
     registry.add("Test/h_R", "h_R", {HistType::kTH1D, {RAxis}});
     registry.add("Test/h_pT", "h_pT", {HistType::kTH1D, {pTAxis}});
@@ -134,7 +134,7 @@ struct qaK0sTrackingEfficiency {
         uint8_t posITSHitMap = recopostrack.itsClusterMap();
         registry.fill(HIST("Test/h_negITSHitMap"), negITSHitMap);
         registry.fill(HIST("Test/h_posITSHitMap"), posITSHitMap);
-        registry.fill(HIST("h5_RpTmassITSHitMap"), v0.v0radius(), v0.pt(), v0.mK0Short(), negITSHitMap, posITSHitMap);
+        registry.fill(HIST("h6_RpTmassITSHitMapPhi"), v0.v0radius(), v0.pt(), v0.mK0Short(), negITSHitMap, posITSHitMap,v0.phi());
       }
     }
   }
