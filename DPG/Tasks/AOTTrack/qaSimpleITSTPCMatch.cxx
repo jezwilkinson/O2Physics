@@ -42,7 +42,7 @@ struct qaSimpleITSTPCMatch {
   Configurable<int> applyEvSel{"applyEvSel", 0, "Flag to apply event selection: 0 -> no event selection, 1 -> Run 2 event selection, 2 -> Run 3 event selection"};
   Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the primary vertex"};
   Configurable<float> vertexZMin{"vertexZMin", -10.f, "Minimum position of the generated vertez in Z (cm)"};
-  Configurable<float> vertexZMax{"vertexZMin", 10.f, "Maximum position of the generated vertez in Z (cm)"};
+  Configurable<float> vertexZMax{"vertexZMax", 10.f, "Maximum position of the generated vertez in Z (cm)"};
   Configurable<float> minTrackpT{"minTrackpT", 0.4f, "Minimum pT (GeV/c) to study for matching efficiency"};
 
 
