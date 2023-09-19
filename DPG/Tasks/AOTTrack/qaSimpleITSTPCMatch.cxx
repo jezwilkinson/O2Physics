@@ -39,18 +39,20 @@ struct qaSimpleITSTPCMatch {
 
   Configurable<int> minITSCl{"minITSCl", 6, "minimum # ITS clusters for matching"};
   Configurable<int> minTPCCl{"minTPCCl", 100, "minimum # TPC clusters for matching"};
+  Configurable<int> applyEvSel{"applyEvSel", 0, "Flag to apply event selection: 0 -> no event selection, 1 -> Run 2 event selection, 2 -> Run 3 event selection"};
+  Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the primary vertex"};
+  Configurable<float> vertexZMin{"vertexZMin", -10.f, "Minimum position of the generated vertez in Z (cm)"};
+  Configurable<float> vertexZMax{"vertexZMin", 10.f, "Maximum position of the generated vertez in Z (cm)"};
+  Configurable<float> minTrackpT{"minTrackpT", 0.4f, "Minimum pT (GeV/c) to study for matching efficiency"};
+
+
   ConfigurableAxis ptBins{"ptBins", {200, 0.f, 10.f}, "Pt binning"};
   ConfigurableAxis phiBins{"phiBins", {54, 0.f, 6.284f}, "Phi binning"};
   ConfigurableAxis etaBins{"etaBins", {200, -1.f, 1.f}, "Eta binning"};
 
   HistogramRegistry histos{"Histos",{},OutputObjHandlingPolicy::AnalysisObject};
 
-  //2D efficiencies
-  TEfficiency* effITSTPCMatchingVsPtVsPhi = nullptr;
-  TEfficiency* effTPCITSMatchingVsPtVsPhi = nullptr;
 
-  TEfficiency* effITSTPCMatchingVsEtaVsPhi = nullptr;
-  TEfficiency* effTPCITSMatchingVsEtaVsPhi = nullptr;
 
   void init(InitContext&)
   {
@@ -92,17 +94,6 @@ struct qaSimpleITSTPCMatch {
     histos.get<TH1>(HIST("eventSelection"))->GetXaxis()->SetBinLabel(2, "Passed Ev. Sel. (no ev. sel)");
     histos.get<TH1>(HIST("eventSelection"))->GetXaxis()->SetBinLabel(3, "Passed Contrib.");
     histos.get<TH1>(HIST("eventSelection"))->GetXaxis()->SetBinLabel(4, "Passed Position");
-
-    auto makeEfficiency2D = [&](TString effname, TString efftitle, auto templateHistoX, auto templateHistoY, TEfficiency*& eff) {
-      TAxis* axisX = histos.get<TH1>(templateHistoX)->GetXaxis();
-      TAxis* axisY = histos.get<TH1>(templateHistoY)->GetYaxis();
-      if (axisX->IsVariableBinSize() || axisY->IsVariableBinSize()) {
-        eff = new TEfficiency(effname, efftitle, axisX->GetNbins(), axisX->GetXbins()->GetArray(), axisY->GetNbins(), axisY->GetXbins()->GetArray());
-      } else {
-        eff = new TEfficiency(effname, efftitle, axisX->GetNbins(), axisX->GetXmin(), axisX->GetXmax(), axisY->GetNbins(), axisY->GetXmin(), axisY->GetXmax());
-      }
-      listEfficiencyData->Add(eff);
-    };
 
   }
 
@@ -153,7 +144,7 @@ struct qaSimpleITSTPCMatch {
       passedITS = false;
       passedTPC = false;
 
-      if (track.pt() < 0.4) {  // skip low-pT tracks
+      if (track.pt() < minTrackpT) {  // skip low-pT tracks
         continue;
       }
       if (track.itsNCls() >= minITSCl)
