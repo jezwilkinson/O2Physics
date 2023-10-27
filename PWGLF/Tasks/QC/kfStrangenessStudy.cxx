@@ -39,8 +39,8 @@ using std::array;
 
 // allows for candidate-by-candidate comparison using Cascade to []CascData link table
 using CascadesCrossLinked = soa::Join<aod::Cascades, aod::CascDataLink, aod::KFCascDataLink>;
-using CascDataLabeled = soa::Join<aod::CascDatas, aod::McCascLabels>;
-using KFCascDataLabeled = soa::Join<aod::KFCascDatas, aod::McKFCascLabels>;
+using CascDataLabeled = soa::Join<aod::CascDatas, aod::CascCovs, aod::McCascLabels>;
+using KFCascDataLabeled = soa::Join<aod::KFCascDatas, aod::KFCascCovs, aod::McKFCascLabels>;
 
 struct kfStrangenessStudy {
 
@@ -347,7 +347,7 @@ struct kfStrangenessStudy {
   } // end process
   PROCESS_SWITCH(kfStrangenessStudy, processData, "process data", true);
 
-  void processMC(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, CascadesCrossLinked const& Cascades, soa::Join<aod::CascDatas, aod::CascCovs> const& CascDatas, soa::Join<aod::KFCascDatas, aod::KFCascCovs> const& KFCascDatas, CascDataLabeled const&, KFCascDataLabeled const&, aod::TracksIU const&, aod::McParticles const& particlesMC) 
+  void processMC(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, CascadesCrossLinked const& Cascades, CascDataLabeled const& CascDatas, KFCascDataLabeled const& KFCascDatas, aod::TracksIU const&, aod::McParticles const& particlesMC) 
   {
     /// Event selection
     histos.fill(HIST("hEventSelectionFlow"), 1.f);
